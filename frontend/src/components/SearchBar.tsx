@@ -5,14 +5,27 @@ import { useState } from "react";
 export default function SearchBar() {
   const [ticker, setTicker] = useState("");
 
-  function handleAnalyze() {
-    if (!ticker.trim()) {
-      alert("Please enter a stock ticker.");
-      return;
-    }
-
-    console.log(`Analyzing ${ticker.toUpperCase()}...`);
+  async function handleAnalyze() {
+  if (!ticker.trim()) {
+    alert("Please enter a stock ticker.");
+    return;
   }
+
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/api/analyze/${ticker.toUpperCase()}`
+    );
+
+    const data = await response.json();
+
+    console.log(data);
+
+    alert(`Company: ${data.company}`);
+  } catch (error) {
+    console.error(error);
+    alert("Unable to contact the AlphaSight backend.");
+  }
+}
 
   return (
     <div className="mt-12 flex justify-center gap-4">
