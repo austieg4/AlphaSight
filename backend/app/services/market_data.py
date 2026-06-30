@@ -1,6 +1,8 @@
 import asyncio
 
+from app.builders.agreement_builder import AgreementBuilder
 from app.builders.company_overview_builder import CompanyOverviewBuilder
+from app.builders.confidence_builder import ConfidenceBuilder
 from app.builders.fundamentals_builder import FundamentalsBuilder
 from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.finnhub import FinnhubProvider
@@ -19,10 +21,15 @@ class MarketDataService:
         self.alpha_vantage_provider = AlphaVantageProvider()
         self.sec_provider = SECEdgarProvider()
         self.fred_provider = FREDProvider()
-        self.fundamentals_builder = FundamentalsBuilder()
-        self.company_overview_builder = CompanyOverviewBuilder()
+
         self.confidence_service = ConfidenceService()
         self.agreement_service = AgreementService()
+
+        self.fundamentals_builder = FundamentalsBuilder()
+        self.company_overview_builder = CompanyOverviewBuilder()
+        self.confidence_builder = ConfidenceBuilder(self.confidence_service)
+        self.agreement_builder = AgreementBuilder(self.agreement_service)
+
         self.score_engine = OverallScoreEngine()
 
     async def get_company_overview(self, ticker: str):
@@ -68,27 +75,18 @@ class MarketDataService:
             fmp_growth,
         )
 
-        confidence = {
-            "company_profile": self.confidence_service.calculate_company_profile_confidence(
-                fmp_profile,
-                finnhub_profile,
-                sec_company,
-            ),
-            "price": self.confidence_service.calculate_price_confidence(
-                fmp_profile,
-                alpha_vantage_quote,
-            ),
-            "macro_context": self.confidence_service.calculate_macro_confidence(
-                macro_snapshot,
-            ),
-        }
+        confidence = self.confidence_builder.build(
+            fmp_profile=fmp_profile,
+            finnhub_profile=finnhub_profile,
+            sec_company=sec_company,
+            alpha_vantage_quote=alpha_vantage_quote,
+            macro_snapshot=macro_snapshot,
+        )
 
-        agreement = {
-            "price": self.agreement_service.calculate_price_agreement(
-                fmp_profile,
-                alpha_vantage_quote,
-            ),
-        }
+        agreement = self.agreement_builder.build(
+            fmp_profile=fmp_profile,
+            alpha_vantage_quote=alpha_vantage_quote,
+        )
 
         company_overview = self.company_overview_builder.build(
             ticker=clean_ticker,
