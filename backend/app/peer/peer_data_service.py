@@ -8,6 +8,8 @@ class PeerDataService:
     Builds normalized peer snapshots from AlphaSight company overviews.
     """
 
+    DEVELOPMENT_PEER_LIMIT = 2
+
     def build_snapshot(self, company_overview):
         fundamentals = company_overview.fundamentals
 
@@ -37,10 +39,12 @@ class PeerDataService:
         peer_tickers,
         market_data_service,
     ):
+        limited_peer_tickers = peer_tickers[: self.DEVELOPMENT_PEER_LIMIT]
+
         results = await asyncio.gather(
             *[
                 market_data_service.get_company_overview(ticker)
-                for ticker in peer_tickers
+                for ticker in limited_peer_tickers
             ],
             return_exceptions=True,
         )

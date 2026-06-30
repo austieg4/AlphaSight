@@ -1,7 +1,7 @@
-from app.intelligence.investment_thesis import InvestmentThesisEngine
-from app.intelligence.recommendation_engine import RecommendationEngine
-from app.intelligence.risk_engine import RiskEngine
 from app.pipeline.stages.peer_analysis_stage import PeerAnalysisStage
+from app.pipeline.stages.recommendation_stage import RecommendationStage
+from app.pipeline.stages.risk_stage import RiskStage
+from app.pipeline.stages.thesis_stage import ThesisStage
 from app.services.market_data import MarketDataService
 
 
@@ -12,10 +12,13 @@ class AnalysisPipeline:
 
     def __init__(self):
         self.market_data_service = MarketDataService()
-        self.peer_analysis_stage = PeerAnalysisStage(self.market_data_service)
-        self.thesis_engine = InvestmentThesisEngine()
-        self.risk_engine = RiskEngine()
-        self.recommendation_engine = RecommendationEngine()
+
+        self.stages = [
+            PeerAnalysisStage(self.market_data_service),
+            ThesisStage(),
+            RiskStage(),
+            RecommendationStage(),
+        ]
 
     async def run(self, ticker: str):
         company = await self.market_data_service.get_company_overview(ticker)
@@ -23,10 +26,7 @@ class AnalysisPipeline:
         if company is None:
             return None
 
-        company = await self.peer_analysis_stage.run(company)
-
-        company.thesis = self.thesis_engine.build(company)
-        company.risk = self.risk_engine.build(company)
-        company.recommendation = self.recommendation_engine.build(company)
+        for stage in self.stages:
+            company = await stage.run(company)
 
         return company
