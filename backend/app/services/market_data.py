@@ -6,6 +6,7 @@ from app.providers.finnhub import FinnhubProvider
 from app.providers.fmp import FMPProvider
 from app.providers.fred import FREDProvider
 from app.providers.sec_edgar import SECEdgarProvider
+from app.scoring.overall_score import OverallScoreEngine
 from app.services.agreement import AgreementService
 from app.services.confidence import ConfidenceService
 
@@ -19,6 +20,7 @@ class MarketDataService:
         self.fred_provider = FREDProvider()
         self.confidence_service = ConfidenceService()
         self.agreement_service = AgreementService()
+        self.score_engine = OverallScoreEngine()
 
     async def get_company_overview(self, ticker: str):
         clean_ticker = ticker.upper()
@@ -56,7 +58,7 @@ class MarketDataService:
             alpha_vantage_quote,
         )
 
-        return CompanyOverview(
+        company_overview = CompanyOverview(
             ticker=clean_ticker,
             company=(
                 (fmp_profile or {}).get("companyName")
@@ -107,5 +109,10 @@ class MarketDataService:
             agreement={
                 "price": price_agreement,
             },
-            status="agreement_engine_v1",
+            score={},
+            status="scoring_engine_v1",
         )
+
+        company_overview.score = self.score_engine.calculate_score(company_overview)
+
+        return company_overview

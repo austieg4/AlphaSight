@@ -17,4 +17,5 @@ class CompanyOverview(BaseModel):
     sources: dict[str, bool]
     confidence: dict[str, ConfidenceDetail]
     agreement: dict
+    score: dict
     status: str
