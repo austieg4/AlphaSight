@@ -23,3 +23,10 @@ class CompanyFundamentals(BaseModel):
     free_cash_flow_per_share: Optional[float] = None
     cash_per_share: Optional[float] = None
     book_value_per_share: Optional[float] = None
+
+    revenue_growth: Optional[float] = None
+    gross_profit_growth: Optional[float] = None
+    operating_income_growth: Optional[float] = None
+    net_income_growth: Optional[float] = None
+    eps_growth: Optional[float] = None
+    free_cash_flow_growth: Optional[float] = None

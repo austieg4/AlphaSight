@@ -49,5 +49,20 @@ class FMPProvider:
         response.raise_for_status()
 
         data = response.json()
+        return data[0] if data else None
+
+    async def get_financial_growth(self, ticker: str):
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.BASE_URL}/financial-growth",
+                params={
+                    "symbol": ticker,
+                    "apikey": settings.FMP_API_KEY,
+                },
+            )
+
+        response.raise_for_status()
+
+        data = response.json()
         
         return data[0] if data else None

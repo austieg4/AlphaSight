@@ -1,7 +1,7 @@
 import asyncio
 
+from app.builders.fundamentals_builder import FundamentalsBuilder
 from app.models.company import CompanyOverview
-from app.models.fundamentals import CompanyFundamentals
 from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.finnhub import FinnhubProvider
 from app.providers.fmp import FMPProvider
@@ -19,6 +19,7 @@ class MarketDataService:
         self.alpha_vantage_provider = AlphaVantageProvider()
         self.sec_provider = SECEdgarProvider()
         self.fred_provider = FREDProvider()
+        self.fundamentals_builder = FundamentalsBuilder()
         self.confidence_service = ConfidenceService()
         self.agreement_service = AgreementService()
         self.score_engine = OverallScoreEngine()
@@ -30,6 +31,7 @@ class MarketDataService:
             self.fmp_provider.get_company_profile(clean_ticker),
             self.fmp_provider.get_key_metrics_ttm(clean_ticker),
             self.fmp_provider.get_ratios_ttm(clean_ticker),
+            self.fmp_provider.get_financial_growth(clean_ticker),
             self.finnhub_provider.get_company_profile(clean_ticker),
             self.alpha_vantage_provider.get_global_quote(clean_ticker),
             self.sec_provider.get_company(clean_ticker),
@@ -41,6 +43,7 @@ class MarketDataService:
             fmp_profile,
             fmp_key_metrics,
             fmp_ratios,
+            fmp_growth,
             finnhub_profile,
             alpha_vantage_quote,
             sec_company,
@@ -58,7 +61,11 @@ class MarketDataService:
         ):
             return None
 
-        fundamentals = self._build_fundamentals(fmp_key_metrics, fmp_ratios)
+        fundamentals = self.fundamentals_builder.build(
+            fmp_key_metrics,
+            fmp_ratios,
+            fmp_growth,
+        )
 
         price_agreement = self.agreement_service.calculate_price_agreement(
             fmp_profile,
@@ -97,6 +104,7 @@ class MarketDataService:
                 "fmp_profile": fmp_profile is not None,
                 "fmp_key_metrics_ttm": fmp_key_metrics is not None,
                 "fmp_ratios_ttm": fmp_ratios is not None,
+                "fmp_financial_growth": fmp_growth is not None,
                 "finnhub_profile": finnhub_profile is not None,
                 "alpha_vantage_quote": alpha_vantage_quote is not None,
                 "sec_company": sec_company is not None,
@@ -120,83 +128,9 @@ class MarketDataService:
                 "price": price_agreement,
             },
             score={},
-            status="investment_scoring_engine_v1",
+            status="builder_refactor_v1",
         )
 
         company_overview.score = self.score_engine.calculate_score(company_overview)
 
         return company_overview
-
-    def _build_fundamentals(self, key_metrics, ratios):
-        if key_metrics is None and ratios is None:
-            return None
-
-        key_metrics = key_metrics or {}
-        ratios = ratios or {}
-
-        return CompanyFundamentals(
-            pe_ratio=(
-                key_metrics.get("priceToEarningsRatioTTM")
-                or ratios.get("priceToEarningsRatioTTM")
-            ),
-            price_to_sales=(
-                key_metrics.get("priceToSalesRatioTTM")
-                or ratios.get("priceToSalesRatioTTM")
-            ),
-            price_to_book=(
-                key_metrics.get("priceToBookRatioTTM")
-                or ratios.get("priceToBookRatioTTM")
-            ),
-            ev_to_ebitda=(
-                key_metrics.get("enterpriseValueMultipleTTM")
-                or ratios.get("enterpriseValueMultipleTTM")
-            ),
-            current_ratio=(
-                key_metrics.get("currentRatioTTM")
-                or ratios.get("currentRatioTTM")
-            ),
-            debt_to_equity=(
-                key_metrics.get("debtToEquityRatioTTM")
-                or ratios.get("debtToEquityRatioTTM")
-            ),
-            gross_margin=(
-                key_metrics.get("grossProfitMarginTTM")
-                or ratios.get("grossProfitMarginTTM")
-            ),
-            operating_margin=(
-                key_metrics.get("operatingProfitMarginTTM")
-                or ratios.get("operatingProfitMarginTTM")
-            ),
-            net_margin=(
-                key_metrics.get("netProfitMarginTTM")
-                or ratios.get("netProfitMarginTTM")
-            ),
-            return_on_equity=(
-                key_metrics.get("returnOnEquityTTM")
-                or ratios.get("returnOnEquityTTM")
-            ),
-            return_on_assets=(
-                key_metrics.get("returnOnAssetsTTM")
-                or ratios.get("returnOnAssetsTTM")
-            ),
-            revenue_per_share=(
-                key_metrics.get("revenuePerShareTTM")
-                or ratios.get("revenuePerShareTTM")
-            ),
-            net_income_per_share=(
-                key_metrics.get("netIncomePerShareTTM")
-                or ratios.get("netIncomePerShareTTM")
-            ),
-            free_cash_flow_per_share=(
-                key_metrics.get("freeCashFlowPerShareTTM")
-                or ratios.get("freeCashFlowPerShareTTM")
-            ),
-            cash_per_share=(
-                key_metrics.get("cashPerShareTTM")
-                or ratios.get("cashPerShareTTM")
-            ),
-            book_value_per_share=(
-                key_metrics.get("bookValuePerShareTTM")
-                or ratios.get("bookValuePerShareTTM")
-            ),
-        )
