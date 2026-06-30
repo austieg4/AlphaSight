@@ -1,15 +1,32 @@
+from app.scoring.financial_health_score import FinancialHealthScoreEngine
+from app.scoring.profitability_score import ProfitabilityScoreEngine
+from app.scoring.valuation_score import ValuationScoreEngine
+
+
 class OverallScoreEngine:
+    def __init__(self):
+        self.valuation_engine = ValuationScoreEngine()
+        self.profitability_engine = ProfitabilityScoreEngine()
+        self.financial_health_engine = FinancialHealthScoreEngine()
+
     def calculate_score(self, company_overview):
         data_quality = self._score_data_quality(company_overview)
         source_agreement = self._score_source_agreement(company_overview)
         macro_context = self._score_macro_context(company_overview)
         company_identity = self._score_company_identity(company_overview)
 
+        valuation = self.valuation_engine.calculate(company_overview.fundamentals)
+        profitability = self.profitability_engine.calculate(company_overview.fundamentals)
+        financial_health = self.financial_health_engine.calculate(company_overview.fundamentals)
+
         overall_score = (
-            data_quality["score"] * 0.30
-            + source_agreement["score"] * 0.30
-            + macro_context["score"] * 0.20
-            + company_identity["score"] * 0.20
+            valuation["score"] * 0.25
+            + profitability["score"] * 0.20
+            + financial_health["score"] * 0.15
+            + data_quality["score"] * 0.15
+            + source_agreement["score"] * 0.10
+            + macro_context["score"] * 0.10
+            + company_identity["score"] * 0.05
         )
 
         return {
@@ -17,6 +34,9 @@ class OverallScoreEngine:
             "max_score": 100,
             "status": self._score_status(overall_score),
             "categories": {
+                "valuation": valuation,
+                "profitability": profitability,
+                "financial_health": financial_health,
                 "data_quality": data_quality,
                 "source_agreement": source_agreement,
                 "macro_context": macro_context,
@@ -47,7 +67,6 @@ class OverallScoreEngine:
 
     def _score_macro_context(self, company_overview):
         macro_confidence = company_overview.confidence.get("macro_context")
-
         score = macro_confidence.score * 100 if macro_confidence else 0
 
         return {
@@ -61,7 +80,6 @@ class OverallScoreEngine:
 
     def _score_company_identity(self, company_overview):
         company_confidence = company_overview.confidence.get("company_profile")
-
         score = company_confidence.score * 100 if company_confidence else 0
 
         return {
@@ -76,14 +94,10 @@ class OverallScoreEngine:
     def _score_status(self, score):
         if score >= 90:
             return "Excellent"
-
         if score >= 80:
             return "Strong"
-
         if score >= 70:
             return "Good"
-
         if score >= 60:
             return "Moderate"
-
         return "Weak"

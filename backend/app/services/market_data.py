@@ -123,7 +123,7 @@ class MarketDataService:
                 "price": price_agreement,
             },
             score={},
-            status="fundamentals_engine_v1",
+            status="investment_scoring_engine_v1",
         )
 
         company_overview.score = self.score_engine.calculate_score(company_overview)
