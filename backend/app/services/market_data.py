@@ -1,3 +1,5 @@
+import asyncio
+
 from app.models.company import CompanyOverview
 from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.finnhub import FinnhubProvider
@@ -17,13 +19,19 @@ class MarketDataService:
     async def get_company_overview(self, ticker: str):
         clean_ticker = ticker.upper()
 
-        fmp_profile = await self.fmp_provider.get_company_profile(clean_ticker)
-        finnhub_profile = await self.finnhub_provider.get_company_profile(clean_ticker)
-        alpha_vantage_quote = await self.alpha_vantage_provider.get_global_quote(
-            clean_ticker
+        results = await asyncio.gather(
+            self.fmp_provider.get_company_profile(clean_ticker),
+            self.finnhub_provider.get_company_profile(clean_ticker),
+            self.alpha_vantage_provider.get_global_quote(clean_ticker),
+            self.sec_provider.get_company(clean_ticker),
+            self.fred_provider.get_macro_snapshot(),
+            return_exceptions=True,
         )
-        sec_company = await self.sec_provider.get_company(clean_ticker)
-        macro_snapshot = await self.fred_provider.get_macro_snapshot()
+
+        fmp_profile, finnhub_profile, alpha_vantage_quote, sec_company, macro_snapshot = [
+            None if isinstance(result, Exception) else result
+            for result in results
+        ]
 
         if (
             fmp_profile is None
@@ -72,5 +80,5 @@ class MarketDataService:
                 "price": 0.9 if fmp_profile and alpha_vantage_quote else 0.75,
                 "macro_context": 0.9 if macro_snapshot else 0.0,
             },
-            status="five_source_market_data_service",
+            status="concurrent_five_source_market_data_service",
         )
