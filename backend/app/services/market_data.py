@@ -1,6 +1,7 @@
 import asyncio
 
 from app.models.company import CompanyOverview
+from app.models.fundamentals import CompanyFundamentals
 from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.finnhub import FinnhubProvider
 from app.providers.fmp import FMPProvider
@@ -27,6 +28,8 @@ class MarketDataService:
 
         results = await asyncio.gather(
             self.fmp_provider.get_company_profile(clean_ticker),
+            self.fmp_provider.get_key_metrics_ttm(clean_ticker),
+            self.fmp_provider.get_ratios_ttm(clean_ticker),
             self.finnhub_provider.get_company_profile(clean_ticker),
             self.alpha_vantage_provider.get_global_quote(clean_ticker),
             self.sec_provider.get_company(clean_ticker),
@@ -36,6 +39,8 @@ class MarketDataService:
 
         (
             fmp_profile,
+            fmp_key_metrics,
+            fmp_ratios,
             finnhub_profile,
             alpha_vantage_quote,
             sec_company,
@@ -52,6 +57,11 @@ class MarketDataService:
             and sec_company is None
         ):
             return None
+
+        fundamentals = self._build_fundamentals(
+            fmp_key_metrics,
+            fmp_ratios,
+        )
 
         price_agreement = self.agreement_service.calculate_price_agreement(
             fmp_profile,
@@ -85,8 +95,11 @@ class MarketDataService:
                 or (finnhub_profile or {}).get("weburl")
             ),
             summary=(fmp_profile or {}).get("description"),
+            fundamentals=fundamentals,
             sources={
                 "fmp_profile": fmp_profile is not None,
+                "fmp_key_metrics_ttm": fmp_key_metrics is not None,
+                "fmp_ratios_ttm": fmp_ratios is not None,
                 "finnhub_profile": finnhub_profile is not None,
                 "alpha_vantage_quote": alpha_vantage_quote is not None,
                 "sec_company": sec_company is not None,
@@ -110,9 +123,35 @@ class MarketDataService:
                 "price": price_agreement,
             },
             score={},
-            status="scoring_engine_v1",
+            status="fundamentals_engine_v1",
         )
 
         company_overview.score = self.score_engine.calculate_score(company_overview)
 
         return company_overview
+
+    def _build_fundamentals(self, key_metrics, ratios):
+        if key_metrics is None and ratios is None:
+            return None
+
+        key_metrics = key_metrics or {}
+        ratios = ratios or {}
+
+        return CompanyFundamentals(
+            pe_ratio=key_metrics.get("peRatioTTM"),
+            price_to_sales=key_metrics.get("priceToSalesRatioTTM"),
+            price_to_book=key_metrics.get("pbRatioTTM"),
+            ev_to_ebitda=key_metrics.get("enterpriseValueOverEBITDATTM"),
+            current_ratio=ratios.get("currentRatioTTM"),
+            debt_to_equity=ratios.get("debtEquityRatioTTM"),
+            gross_margin=ratios.get("grossProfitMarginTTM"),
+            operating_margin=ratios.get("operatingProfitMarginTTM"),
+            net_margin=ratios.get("netProfitMarginTTM"),
+            return_on_equity=ratios.get("returnOnEquityTTM"),
+            return_on_assets=ratios.get("returnOnAssetsTTM"),
+            revenue_per_share=key_metrics.get("revenuePerShareTTM"),
+            net_income_per_share=key_metrics.get("netIncomePerShareTTM"),
+            free_cash_flow_per_share=key_metrics.get("freeCashFlowPerShareTTM"),
+            cash_per_share=key_metrics.get("cashPerShareTTM"),
+            book_value_per_share=key_metrics.get("bookValuePerShareTTM"),
+        )
