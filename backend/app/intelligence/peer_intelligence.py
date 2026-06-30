@@ -1,4 +1,5 @@
 from app.intelligence.peer_rules import PeerRules
+from app.models.peer import PeerGroup
 
 
 class PeerIntelligence:
@@ -8,9 +9,9 @@ class PeerIntelligence:
     def get_peer_summary(self, ticker: str):
         peers = self.peer_rules.get_peers(ticker)
 
-        return {
-            "ticker": ticker.upper(),
-            "peers": peers,
-            "peer_count": len(peers),
-            "status": "static_peer_group_v1",
-        }
+        return PeerGroup(
+            ticker=ticker.upper(),
+            peers=peers,
+            peer_count=len(peers),
+            status="typed_peer_group_v1",
+        )

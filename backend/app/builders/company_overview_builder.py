@@ -57,6 +57,6 @@ class CompanyOverviewBuilder:
             },
             confidence=confidence,
             agreement=agreement,
-            score={},
-            status="peer_intelligence_v1",
+            score=None,
+            status="typed_score_model_v1",
         )

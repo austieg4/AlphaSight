@@ -2,8 +2,11 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.models.agreement import Agreement
 from app.models.confidence import ConfidenceDetail
 from app.models.fundamentals import CompanyFundamentals
+from app.models.peer import PeerGroup
+from app.models.score import AlphaSightScore
 
 
 class CompanyOverview(BaseModel):
@@ -16,9 +19,9 @@ class CompanyOverview(BaseModel):
     website: Optional[str] = None
     summary: Optional[str] = None
     fundamentals: Optional[CompanyFundamentals] = None
-    peers: dict
+    peers: PeerGroup
     sources: dict[str, bool]
     confidence: dict[str, ConfidenceDetail]
-    agreement: dict
-    score: dict
+    agreement: Agreement
+    score: Optional[AlphaSightScore] = None
     status: str

@@ -1,3 +1,4 @@
+from app.models.score import AlphaSightScore, ScoreCategory
 from app.scoring.financial_health_score import FinancialHealthScoreEngine
 from app.scoring.growth_score import GrowthScoreEngine
 from app.scoring.profitability_score import ProfitabilityScoreEngine
@@ -33,27 +34,27 @@ class OverallScoreEngine:
             + growth["score"] * 0.20
             + profitability["score"] * 0.20
             + financial_health["score"] * 0.15
-            + data_quality["score"] * 0.10
-            + source_agreement["score"] * 0.05
-            + macro_context["score"] * 0.05
-            + company_identity["score"] * 0.05
+            + data_quality.score * 0.10
+            + source_agreement.score * 0.05
+            + macro_context.score * 0.05
+            + company_identity.score * 0.05
         )
 
-        return {
-            "overall_score": round(overall_score, 2),
-            "max_score": 100,
-            "status": self._score_status(overall_score),
-            "categories": {
-                "valuation": valuation,
-                "growth": growth,
-                "profitability": profitability,
-                "financial_health": financial_health,
+        return AlphaSightScore(
+            overall_score=round(overall_score, 2),
+            max_score=100,
+            status=self._score_status(overall_score),
+            categories={
+                "valuation": ScoreCategory(**valuation),
+                "growth": ScoreCategory(**growth),
+                "profitability": ScoreCategory(**profitability),
+                "financial_health": ScoreCategory(**financial_health),
                 "data_quality": data_quality,
                 "source_agreement": source_agreement,
                 "macro_context": macro_context,
                 "company_identity": company_identity,
             },
-        }
+        )
 
     def _score_data_quality(self, company_overview):
         sources = company_overview.sources
@@ -62,46 +63,46 @@ class OverallScoreEngine:
 
         score = (active_sources / total_sources) * 100 if total_sources else 0
 
-        return {
-            "score": round(score, 2),
-            "explanation": f"{active_sources} of {total_sources} data sources responded.",
-        }
+        return ScoreCategory(
+            score=round(score, 2),
+            explanation=f"{active_sources} of {total_sources} data sources responded.",
+        )
 
     def _score_source_agreement(self, company_overview):
-        agreement = company_overview.agreement.get("price", {})
+        agreement = company_overview.agreement.price
 
-        return {
-            "score": agreement.get("score", 0) * 100,
-            "explanation": f"Price agreement status: {agreement.get('status', 'Unknown')}.",
-        }
+        return ScoreCategory(
+            score=agreement.score * 100,
+            explanation=f"Price agreement status: {agreement.status}.",
+        )
 
     def _score_macro_context(self, company_overview):
         macro = company_overview.confidence.get("macro_context")
 
         if not macro:
-            return {
-                "score": 0,
-                "explanation": "No macroeconomic context available.",
-            }
+            return ScoreCategory(
+                score=0,
+                explanation="No macroeconomic context available.",
+            )
 
-        return {
-            "score": macro.score * 100,
-            "explanation": macro.explanation,
-        }
+        return ScoreCategory(
+            score=macro.score * 100,
+            explanation=macro.explanation,
+        )
 
     def _score_company_identity(self, company_overview):
         identity = company_overview.confidence.get("company_profile")
 
         if not identity:
-            return {
-                "score": 0,
-                "explanation": "Company identity unavailable.",
-            }
+            return ScoreCategory(
+                score=0,
+                explanation="Company identity unavailable.",
+            )
 
-        return {
-            "score": identity.score * 100,
-            "explanation": identity.explanation,
-        }
+        return ScoreCategory(
+            score=identity.score * 100,
+            explanation=identity.explanation,
+        )
 
     def _score_status(self, score):
         if score >= 90:

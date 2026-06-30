@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.services.market_data import MarketDataService
+from app.services.analysis_service import AnalysisService
 
 app = FastAPI()
 
@@ -26,10 +26,10 @@ def health():
 
 @app.get("/api/analyze/{ticker}")
 async def analyze_stock(ticker: str):
-    market_data_service = MarketDataService()
-    company_overview = await market_data_service.get_company_overview(ticker)
+    analysis_service = AnalysisService()
+    analysis = await analysis_service.analyze(ticker)
 
-    if company_overview is None:
+    if analysis is None:
         raise HTTPException(status_code=404, detail="Ticker not found")
 
-    return company_overview
+    return analysis
