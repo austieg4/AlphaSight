@@ -2,6 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.models.confidence import ConfidenceDetail
+
 
 class CompanyOverview(BaseModel):
     ticker: str
@@ -13,5 +15,5 @@ class CompanyOverview(BaseModel):
     website: Optional[str] = None
     summary: Optional[str] = None
     sources: dict[str, bool]
-    confidence: dict[str, float]
+    confidence: dict[str, ConfidenceDetail]
     status: str

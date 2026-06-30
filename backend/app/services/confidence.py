@@ -1,3 +1,6 @@
+from app.models.confidence import ConfidenceDetail
+
+
 class ConfidenceService:
     def calculate_company_profile_confidence(
         self,
@@ -8,7 +11,7 @@ class ConfidenceService:
         score = 0.0
 
         if fmp_profile:
-            score += 0.3
+            score += 0.30
 
         if finnhub_profile:
             score += 0.25
@@ -21,26 +24,79 @@ class ConfidenceService:
             finnhub_name = (finnhub_profile.get("name") or "").lower()
 
             if fmp_name and finnhub_name and fmp_name in finnhub_name:
-                score += 0.1
+                score += 0.10
 
-        return min(score, 1.0)
+        score = min(score, 1.0)
+
+        if score >= 0.95:
+            level = "Very High"
+        elif score >= 0.85:
+            level = "High"
+        elif score >= 0.70:
+            level = "Medium"
+        else:
+            level = "Low"
+
+        return ConfidenceDetail(
+            score=score,
+            level=level,
+            explanation=(
+                "Calculated from Financial Modeling Prep, Finnhub, "
+                "and SEC EDGAR agreement."
+            ),
+        )
 
     def calculate_price_confidence(self, fmp_profile, alpha_vantage_quote):
         if fmp_profile and alpha_vantage_quote:
-            return 0.9
+            score = 0.90
+            level = "High"
+            explanation = (
+                "Price confirmed by Financial Modeling Prep "
+                "and Alpha Vantage."
+            )
 
-        if fmp_profile or alpha_vantage_quote:
-            return 0.75
+        elif fmp_profile or alpha_vantage_quote:
+            score = 0.75
+            level = "Medium"
+            explanation = "Price available from one provider."
 
-        return 0.0
+        else:
+            score = 0.0
+            level = "Unavailable"
+            explanation = "No price data available."
+
+        return ConfidenceDetail(
+            score=score,
+            level=level,
+            explanation=explanation,
+        )
 
     def calculate_macro_confidence(self, macro_snapshot):
         if not macro_snapshot:
-            return 0.0
+            return ConfidenceDetail(
+                score=0.0,
+                level="Unavailable",
+                explanation="No macroeconomic data available.",
+            )
 
-        available_series = [
-            value for value in macro_snapshot.values()
-            if value is not None
-        ]
+        available = sum(
+            value is not None
+            for value in macro_snapshot.values()
+        )
 
-        return len(available_series) / len(macro_snapshot)
+        score = available / len(macro_snapshot)
+
+        if score == 1.0:
+            level = "Very High"
+        elif score >= 0.75:
+            level = "High"
+        elif score >= 0.5:
+            level = "Medium"
+        else:
+            level = "Low"
+
+        return ConfidenceDetail(
+            score=score,
+            level=level,
+            explanation=f"{available} of {len(macro_snapshot)} FRED indicators available.",
+        )

@@ -30,7 +30,13 @@ class MarketDataService:
             return_exceptions=True,
         )
 
-        fmp_profile, finnhub_profile, alpha_vantage_quote, sec_company, macro_snapshot = [
+        (
+            fmp_profile,
+            finnhub_profile,
+            alpha_vantage_quote,
+            sec_company,
+            macro_snapshot,
+        ) = [
             None if isinstance(result, Exception) else result
             for result in results
         ]
@@ -42,6 +48,27 @@ class MarketDataService:
             and sec_company is None
         ):
             return None
+
+        company_confidence = (
+            self.confidence_service.calculate_company_profile_confidence(
+                fmp_profile,
+                finnhub_profile,
+                sec_company,
+            )
+        )
+
+        price_confidence = (
+            self.confidence_service.calculate_price_confidence(
+                fmp_profile,
+                alpha_vantage_quote,
+            )
+        )
+
+        macro_confidence = (
+            self.confidence_service.calculate_macro_confidence(
+                macro_snapshot,
+            )
+        )
 
         return CompanyOverview(
             ticker=clean_ticker,
@@ -78,18 +105,9 @@ class MarketDataService:
                 "fred_macro": macro_snapshot is not None,
             },
             confidence={
-                "company_profile": self.confidence_service.calculate_company_profile_confidence(
-                    fmp_profile,
-                    finnhub_profile,
-                    sec_company,
-                ),
-                "price": self.confidence_service.calculate_price_confidence(
-                    fmp_profile,
-                    alpha_vantage_quote,
-                ),
-                "macro_context": self.confidence_service.calculate_macro_confidence(
-                    macro_snapshot,
-                ),
+                "company_profile": company_confidence,
+                "price": price_confidence,
+                "macro_context": macro_confidence,
             },
-            status="confidence_engine_market_data_service",
+            status="confidence_engine_v2",
         )
