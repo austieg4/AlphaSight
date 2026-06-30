@@ -1,7 +1,7 @@
 import asyncio
 
+from app.builders.company_overview_builder import CompanyOverviewBuilder
 from app.builders.fundamentals_builder import FundamentalsBuilder
-from app.models.company import CompanyOverview
 from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.finnhub import FinnhubProvider
 from app.providers.fmp import FMPProvider
@@ -20,6 +20,7 @@ class MarketDataService:
         self.sec_provider = SECEdgarProvider()
         self.fred_provider = FREDProvider()
         self.fundamentals_builder = FundamentalsBuilder()
+        self.company_overview_builder = CompanyOverviewBuilder()
         self.confidence_service = ConfidenceService()
         self.agreement_service = AgreementService()
         self.score_engine = OverallScoreEngine()
@@ -67,68 +68,38 @@ class MarketDataService:
             fmp_growth,
         )
 
-        price_agreement = self.agreement_service.calculate_price_agreement(
-            fmp_profile,
-            alpha_vantage_quote,
-        )
+        confidence = {
+            "company_profile": self.confidence_service.calculate_company_profile_confidence(
+                fmp_profile,
+                finnhub_profile,
+                sec_company,
+            ),
+            "price": self.confidence_service.calculate_price_confidence(
+                fmp_profile,
+                alpha_vantage_quote,
+            ),
+            "macro_context": self.confidence_service.calculate_macro_confidence(
+                macro_snapshot,
+            ),
+        }
 
-        company_overview = CompanyOverview(
+        agreement = {
+            "price": self.agreement_service.calculate_price_agreement(
+                fmp_profile,
+                alpha_vantage_quote,
+            ),
+        }
+
+        company_overview = self.company_overview_builder.build(
             ticker=clean_ticker,
-            company=(
-                (fmp_profile or {}).get("companyName")
-                or (finnhub_profile or {}).get("name")
-                or (sec_company or {}).get("company")
-                or (alpha_vantage_quote or {}).get("symbol")
-            ),
-            price=(
-                (fmp_profile or {}).get("price")
-                or (alpha_vantage_quote or {}).get("price")
-            ),
-            market_cap=(
-                (fmp_profile or {}).get("marketCap")
-                or (fmp_profile or {}).get("mktCap")
-                or (finnhub_profile or {}).get("marketCapitalization")
-            ),
-            sector=(fmp_profile or {}).get("sector"),
-            industry=(
-                (fmp_profile or {}).get("industry")
-                or (finnhub_profile or {}).get("finnhubIndustry")
-            ),
-            website=(
-                (fmp_profile or {}).get("website")
-                or (finnhub_profile or {}).get("weburl")
-            ),
-            summary=(fmp_profile or {}).get("description"),
+            fmp_profile=fmp_profile,
+            finnhub_profile=finnhub_profile,
+            alpha_vantage_quote=alpha_vantage_quote,
+            sec_company=sec_company,
             fundamentals=fundamentals,
-            sources={
-                "fmp_profile": fmp_profile is not None,
-                "fmp_key_metrics_ttm": fmp_key_metrics is not None,
-                "fmp_ratios_ttm": fmp_ratios is not None,
-                "fmp_financial_growth": fmp_growth is not None,
-                "finnhub_profile": finnhub_profile is not None,
-                "alpha_vantage_quote": alpha_vantage_quote is not None,
-                "sec_company": sec_company is not None,
-                "fred_macro": macro_snapshot is not None,
-            },
-            confidence={
-                "company_profile": self.confidence_service.calculate_company_profile_confidence(
-                    fmp_profile,
-                    finnhub_profile,
-                    sec_company,
-                ),
-                "price": self.confidence_service.calculate_price_confidence(
-                    fmp_profile,
-                    alpha_vantage_quote,
-                ),
-                "macro_context": self.confidence_service.calculate_macro_confidence(
-                    macro_snapshot,
-                ),
-            },
-            agreement={
-                "price": price_agreement,
-            },
-            score={},
-            status="builder_refactor_v1",
+            macro_snapshot=macro_snapshot,
+            confidence=confidence,
+            agreement=agreement,
         )
 
         company_overview.score = self.score_engine.calculate_score(company_overview)
