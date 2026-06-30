@@ -1,3 +1,4 @@
+from app.intelligence.investment_thesis import InvestmentThesisEngine
 from app.models.peer_analysis import PeerAnalysis
 from app.peer.peer_comparison import PeerComparisonEngine
 from app.peer.peer_data_service import PeerDataService
@@ -13,6 +14,7 @@ class AnalysisService:
         self.market_data_service = MarketDataService()
         self.peer_data_service = PeerDataService()
         self.peer_comparison = PeerComparisonEngine()
+        self.thesis_engine = InvestmentThesisEngine()
 
     async def analyze(self, ticker: str):
         company = await self.market_data_service.get_company_overview(ticker)
@@ -61,5 +63,7 @@ class AnalysisService:
             peer_count=len(peer_snapshots),
             status="complete",
         )
+
+        company.thesis = self.thesis_engine.build(company)
 
         return company

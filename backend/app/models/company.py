@@ -8,6 +8,7 @@ from app.models.fundamentals import CompanyFundamentals
 from app.models.peer import PeerGroup
 from app.models.peer_analysis import PeerAnalysis
 from app.models.score import AlphaSightScore
+from app.models.thesis import InvestmentThesis
 
 
 class CompanyOverview(BaseModel):
@@ -22,6 +23,7 @@ class CompanyOverview(BaseModel):
     fundamentals: Optional[CompanyFundamentals] = None
     peers: PeerGroup
     peer_analysis: Optional[PeerAnalysis] = None
+    thesis: Optional[InvestmentThesis] = None
     sources: dict[str, bool]
     confidence: dict[str, ConfidenceDetail]
     agreement: Agreement
