@@ -17,11 +17,11 @@ def test_compare_metric_above_peer_average():
     engine = PeerComparisonEngine()
     result = engine.compare_metric(company, peers, "pe_ratio")
 
-    assert result["metric"] == "pe_ratio"
-    assert result["company_value"] == 35.0
-    assert result["peer_average"] == 30.0
-    assert result["difference_percent"] == 16.67
-    assert result["assessment"] == "Above Peer Average"
+    assert result.metric == "pe_ratio"
+    assert result.company_value == 35.0
+    assert result.peer_average == 30.0
+    assert result.difference_percent == 16.67
+    assert result.assessment == "Above Peer Average"
 
 
 def test_compare_metric_returns_none_when_company_value_missing():
