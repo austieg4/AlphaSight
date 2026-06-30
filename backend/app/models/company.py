@@ -16,6 +16,7 @@ class CompanyOverview(BaseModel):
     website: Optional[str] = None
     summary: Optional[str] = None
     fundamentals: Optional[CompanyFundamentals] = None
+    peers: dict
     sources: dict[str, bool]
     confidence: dict[str, ConfidenceDetail]
     agreement: dict

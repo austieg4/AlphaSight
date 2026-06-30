@@ -18,17 +18,12 @@ class OverallScoreEngine:
         company_identity = self._score_company_identity(company_overview)
 
         valuation = self.valuation_engine.calculate(
-            company_overview.fundamentals
+            company_overview.fundamentals,
+            company_overview.industry,
         )
 
-        growth = self.growth_engine.calculate(
-            company_overview.fundamentals
-        )
-
-        profitability = self.profitability_engine.calculate(
-            company_overview.fundamentals
-        )
-
+        growth = self.growth_engine.calculate(company_overview.fundamentals)
+        profitability = self.profitability_engine.calculate(company_overview.fundamentals)
         financial_health = self.financial_health_engine.calculate(
             company_overview.fundamentals
         )
@@ -62,25 +57,14 @@ class OverallScoreEngine:
 
     def _score_data_quality(self, company_overview):
         sources = company_overview.sources
-
-        active_sources = sum(
-            1 for active in sources.values() if active
-        )
-
+        active_sources = sum(1 for active in sources.values() if active)
         total_sources = len(sources)
 
-        score = (
-            (active_sources / total_sources) * 100
-            if total_sources
-            else 0
-        )
+        score = (active_sources / total_sources) * 100 if total_sources else 0
 
         return {
             "score": round(score, 2),
-            "explanation": (
-                f"{active_sources} of {total_sources} "
-                "data sources responded."
-            ),
+            "explanation": f"{active_sources} of {total_sources} data sources responded.",
         }
 
     def _score_source_agreement(self, company_overview):
@@ -88,10 +72,7 @@ class OverallScoreEngine:
 
         return {
             "score": agreement.get("score", 0) * 100,
-            "explanation": (
-                f"Price agreement status: "
-                f"{agreement.get('status', 'Unknown')}."
-            ),
+            "explanation": f"Price agreement status: {agreement.get('status', 'Unknown')}.",
         }
 
     def _score_macro_context(self, company_overview):
@@ -109,9 +90,7 @@ class OverallScoreEngine:
         }
 
     def _score_company_identity(self, company_overview):
-        identity = company_overview.confidence.get(
-            "company_profile"
-        )
+        identity = company_overview.confidence.get("company_profile")
 
         if not identity:
             return {

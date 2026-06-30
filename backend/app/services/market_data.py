@@ -4,6 +4,7 @@ from app.builders.agreement_builder import AgreementBuilder
 from app.builders.company_overview_builder import CompanyOverviewBuilder
 from app.builders.confidence_builder import ConfidenceBuilder
 from app.builders.fundamentals_builder import FundamentalsBuilder
+from app.intelligence.peer_intelligence import PeerIntelligence
 from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.finnhub import FinnhubProvider
 from app.providers.fmp import FMPProvider
@@ -30,6 +31,7 @@ class MarketDataService:
         self.confidence_builder = ConfidenceBuilder(self.confidence_service)
         self.agreement_builder = AgreementBuilder(self.agreement_service)
 
+        self.peer_intelligence = PeerIntelligence()
         self.score_engine = OverallScoreEngine()
 
     async def get_company_overview(self, ticker: str):
@@ -88,6 +90,8 @@ class MarketDataService:
             alpha_vantage_quote=alpha_vantage_quote,
         )
 
+        peers = self.peer_intelligence.get_peer_summary(clean_ticker)
+
         company_overview = self.company_overview_builder.build(
             ticker=clean_ticker,
             fmp_profile=fmp_profile,
@@ -98,6 +102,7 @@ class MarketDataService:
             macro_snapshot=macro_snapshot,
             confidence=confidence,
             agreement=agreement,
+            peers=peers,
         )
 
         company_overview.score = self.score_engine.calculate_score(company_overview)

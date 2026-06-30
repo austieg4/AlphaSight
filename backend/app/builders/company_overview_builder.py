@@ -13,6 +13,7 @@ class CompanyOverviewBuilder:
         macro_snapshot,
         confidence,
         agreement,
+        peers,
     ):
         return CompanyOverview(
             ticker=ticker,
@@ -42,6 +43,7 @@ class CompanyOverviewBuilder:
             ),
             summary=(fmp_profile or {}).get("description"),
             fundamentals=fundamentals,
+            peers=peers,
             sources={
                 "fmp_profile": fmp_profile is not None,
                 "fmp_key_metrics_ttm": fundamentals is not None,
@@ -51,9 +53,10 @@ class CompanyOverviewBuilder:
                 "alpha_vantage_quote": alpha_vantage_quote is not None,
                 "sec_company": sec_company is not None,
                 "fred_macro": macro_snapshot is not None,
+                "peer_intelligence": peers is not None,
             },
             confidence=confidence,
             agreement=agreement,
             score={},
-            status="company_overview_builder_v1",
+            status="peer_intelligence_v1",
         )
