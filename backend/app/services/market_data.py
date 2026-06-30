@@ -2,6 +2,7 @@ from app.models.company import CompanyOverview
 from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.finnhub import FinnhubProvider
 from app.providers.fmp import FMPProvider
+from app.providers.fred import FREDProvider
 from app.providers.sec_edgar import SECEdgarProvider
 
 
@@ -11,6 +12,7 @@ class MarketDataService:
         self.finnhub_provider = FinnhubProvider()
         self.alpha_vantage_provider = AlphaVantageProvider()
         self.sec_provider = SECEdgarProvider()
+        self.fred_provider = FREDProvider()
 
     async def get_company_overview(self, ticker: str):
         clean_ticker = ticker.upper()
@@ -21,6 +23,7 @@ class MarketDataService:
             clean_ticker
         )
         sec_company = await self.sec_provider.get_company(clean_ticker)
+        macro_snapshot = await self.fred_provider.get_macro_snapshot()
 
         if (
             fmp_profile is None
@@ -62,10 +65,12 @@ class MarketDataService:
                 "finnhub_profile": finnhub_profile is not None,
                 "alpha_vantage_quote": alpha_vantage_quote is not None,
                 "sec_company": sec_company is not None,
+                "fred_macro": macro_snapshot is not None,
             },
             confidence={
                 "company_profile": 0.95 if fmp_profile and finnhub_profile and sec_company else 0.8,
                 "price": 0.9 if fmp_profile and alpha_vantage_quote else 0.75,
+                "macro_context": 0.9 if macro_snapshot else 0.0,
             },
-            status="four_source_market_data_service",
+            status="five_source_market_data_service",
         )
