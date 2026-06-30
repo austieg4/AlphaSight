@@ -1,4 +1,5 @@
 from app.intelligence.investment_thesis import InvestmentThesisEngine
+from app.intelligence.recommendation_engine import RecommendationEngine
 from app.models.peer_analysis import PeerAnalysis
 from app.peer.peer_comparison import PeerComparisonEngine
 from app.peer.peer_data_service import PeerDataService
@@ -15,6 +16,7 @@ class AnalysisService:
         self.peer_data_service = PeerDataService()
         self.peer_comparison = PeerComparisonEngine()
         self.thesis_engine = InvestmentThesisEngine()
+        self.recommendation_engine = RecommendationEngine()
 
     async def analyze(self, ticker: str):
         company = await self.market_data_service.get_company_overview(ticker)
@@ -65,5 +67,6 @@ class AnalysisService:
         )
 
         company.thesis = self.thesis_engine.build(company)
+        company.recommendation = self.recommendation_engine.build(company)
 
         return company
