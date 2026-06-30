@@ -1,9 +1,7 @@
 from app.intelligence.investment_thesis import InvestmentThesisEngine
 from app.intelligence.recommendation_engine import RecommendationEngine
 from app.intelligence.risk_engine import RiskEngine
-from app.models.peer_analysis import PeerAnalysis
-from app.peer.peer_comparison import PeerComparisonEngine
-from app.peer.peer_data_service import PeerDataService
+from app.pipeline.stages.peer_analysis_stage import PeerAnalysisStage
 from app.services.market_data import MarketDataService
 
 
@@ -14,8 +12,7 @@ class AnalysisPipeline:
 
     def __init__(self):
         self.market_data_service = MarketDataService()
-        self.peer_data_service = PeerDataService()
-        self.peer_comparison = PeerComparisonEngine()
+        self.peer_analysis_stage = PeerAnalysisStage(self.market_data_service)
         self.thesis_engine = InvestmentThesisEngine()
         self.risk_engine = RiskEngine()
         self.recommendation_engine = RecommendationEngine()
@@ -26,47 +23,7 @@ class AnalysisPipeline:
         if company is None:
             return None
 
-        company_snapshot = self.peer_data_service.build_snapshot(company)
-
-        peer_snapshots = await self.peer_data_service.build_peer_snapshots(
-            company.peers.peers,
-            self.market_data_service,
-        )
-
-        company.peer_analysis = PeerAnalysis(
-            pe_ratio=self.peer_comparison.compare_metric(
-                company_snapshot,
-                peer_snapshots,
-                "pe_ratio",
-            ),
-            revenue_growth=self.peer_comparison.compare_metric(
-                company_snapshot,
-                peer_snapshots,
-                "revenue_growth",
-            ),
-            gross_margin=self.peer_comparison.compare_metric(
-                company_snapshot,
-                peer_snapshots,
-                "gross_margin",
-            ),
-            operating_margin=self.peer_comparison.compare_metric(
-                company_snapshot,
-                peer_snapshots,
-                "operating_margin",
-            ),
-            return_on_equity=self.peer_comparison.compare_metric(
-                company_snapshot,
-                peer_snapshots,
-                "return_on_equity",
-            ),
-            overall_score=self.peer_comparison.compare_metric(
-                company_snapshot,
-                peer_snapshots,
-                "overall_score",
-            ),
-            peer_count=len(peer_snapshots),
-            status="complete",
-        )
+        company = await self.peer_analysis_stage.run(company)
 
         company.thesis = self.thesis_engine.build(company)
         company.risk = self.risk_engine.build(company)
