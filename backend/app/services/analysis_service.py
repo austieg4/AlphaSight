@@ -5,9 +5,6 @@ from app.services.market_data import MarketDataService
 class AnalysisService:
     """
     Coordinates the complete AlphaSight analysis workflow.
-
-    This service is intentionally lightweight. It orchestrates
-    the various components without containing business logic.
     """
 
     def __init__(self):
@@ -15,23 +12,18 @@ class AnalysisService:
         self.peer_data_service = PeerDataService()
 
     async def analyze(self, ticker: str):
-        """
-        Build a complete company analysis.
-        """
-
         company = await self.market_data_service.get_company_overview(ticker)
 
         if company is None:
             return None
 
-        # Future:
-        #
-        # peer_snapshots =
-        #     await self.peer_data_service.build_peer_snapshots(...)
-        #
-        # peer_analysis =
-        #     PeerComparisonEngine(...)
-        #
-        # company.peer_analysis = peer_analysis
+        peer_snapshots = await self.peer_data_service.build_peer_snapshots(
+            company.peers.peers,
+            self.market_data_service,
+        )
+
+        # Temporary: store peer snapshot count inside peers status path later.
+        # Next step will add a typed PeerAnalysis model.
+        company.peers.status = f"dynamic_peer_snapshots_v1:{len(peer_snapshots)}"
 
         return company
