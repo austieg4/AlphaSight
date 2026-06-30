@@ -49,4 +49,5 @@ class FMPProvider:
         response.raise_for_status()
 
         data = response.json()
+        
         return data[0] if data else None
