@@ -1,5 +1,6 @@
 import asyncio
 
+from app.config import settings
 from app.peer.peer_models import PeerSnapshot
 
 
@@ -7,8 +8,6 @@ class PeerDataService:
     """
     Builds normalized peer snapshots from AlphaSight company overviews.
     """
-
-    DEVELOPMENT_PEER_LIMIT = 2
 
     def build_snapshot(self, company_overview):
         fundamentals = company_overview.fundamentals
@@ -39,7 +38,7 @@ class PeerDataService:
         peer_tickers,
         market_data_service,
     ):
-        limited_peer_tickers = peer_tickers[: self.DEVELOPMENT_PEER_LIMIT]
+        limited_peer_tickers = peer_tickers[: settings.DEVELOPMENT_PEER_LIMIT]
 
         results = await asyncio.gather(
             *[

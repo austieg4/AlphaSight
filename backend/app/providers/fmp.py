@@ -6,7 +6,6 @@ from app.config import settings
 
 class FMPProvider:
     BASE_URL = "https://financialmodelingprep.com/stable"
-    CACHE_TTL_SECONDS = 60 * 60 * 6
 
     async def get_company_profile(self, ticker: str):
         return await self._get_cached_endpoint(
@@ -45,7 +44,9 @@ class FMPProvider:
 
         print(f"FMP CACHE MISS: {cache_key}")
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(
+            timeout=settings.REQUEST_TIMEOUT_SECONDS,
+        ) as client:
             response = await client.get(
                 f"{self.BASE_URL}/{endpoint}",
                 params={
@@ -62,7 +63,7 @@ class FMPProvider:
         memory_cache.set(
             cache_key,
             result,
-            self.CACHE_TTL_SECONDS,
+            settings.FMP_CACHE_TTL_SECONDS,
         )
 
         return result
