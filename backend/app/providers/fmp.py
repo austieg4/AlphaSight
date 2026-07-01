@@ -35,14 +35,16 @@ class FMPProvider:
             ticker=ticker,
         )
 
-    async def _get_cached_endpoint(self, cache_key: str, endpoint: str, ticker: str):
+    async def _get_cached_endpoint(
+        self,
+        cache_key: str,
+        endpoint: str,
+        ticker: str,
+    ):
         cached_data = memory_cache.get(cache_key)
 
         if cached_data is not None:
-            print(f"FMP CACHE HIT: {cache_key}")
             return cached_data
-
-        print(f"FMP CACHE MISS: {cache_key}")
 
         async with httpx.AsyncClient(
             timeout=settings.REQUEST_TIMEOUT_SECONDS,

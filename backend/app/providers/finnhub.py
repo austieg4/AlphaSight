@@ -1,5 +1,6 @@
 import httpx
 
+from app.cache.memory_cache import memory_cache
 from app.config import settings
 
 
@@ -7,11 +8,18 @@ class FinnhubProvider:
     BASE_URL = "https://finnhub.io/api/v1"
 
     async def get_company_profile(self, ticker: str):
-        url = f"{self.BASE_URL}/stock/profile2"
+        cache_key = f"finnhub:profile:{ticker}"
 
-        async with httpx.AsyncClient() as client:
+        cached_data = memory_cache.get(cache_key)
+
+        if cached_data is not None:
+            return cached_data
+
+        async with httpx.AsyncClient(
+            timeout=settings.REQUEST_TIMEOUT_SECONDS,
+        ) as client:
             response = await client.get(
-                url,
+                f"{self.BASE_URL}/stock/profile2",
                 params={
                     "symbol": ticker,
                     "token": settings.FINNHUB_API_KEY,
@@ -22,7 +30,12 @@ class FinnhubProvider:
 
         data = response.json()
 
-        if not data:
-            return None
+        result = data if data else None
 
-        return data
+        memory_cache.set(
+            cache_key,
+            result,
+            settings.FINNHUB_CACHE_TTL_SECONDS,
+        )
+
+        return result
