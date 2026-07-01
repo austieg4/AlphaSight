@@ -4,6 +4,7 @@ from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.finnhub import FinnhubProvider
 from app.providers.fmp import FMPProvider
 from app.providers.fred import FREDProvider
+from app.providers.provider_registry import ProviderRegistry
 from app.providers.sec_edgar import SECEdgarProvider
 
 
@@ -13,22 +14,30 @@ class ProviderManager:
     """
 
     def __init__(self):
-        self.fmp_provider = FMPProvider()
-        self.finnhub_provider = FinnhubProvider()
-        self.alpha_vantage_provider = AlphaVantageProvider()
-        self.sec_provider = SECEdgarProvider()
-        self.fred_provider = FREDProvider()
+        self.registry = ProviderRegistry()
+
+        self.registry.register("fmp", FMPProvider())
+        self.registry.register("finnhub", FinnhubProvider())
+        self.registry.register("alpha_vantage", AlphaVantageProvider())
+        self.registry.register("sec", SECEdgarProvider())
+        self.registry.register("fred", FREDProvider())
 
     async def fetch_company_data(self, ticker: str):
+        fmp = self.registry.get("fmp")
+        finnhub = self.registry.get("finnhub")
+        alpha_vantage = self.registry.get("alpha_vantage")
+        sec = self.registry.get("sec")
+        fred = self.registry.get("fred")
+
         results = await asyncio.gather(
-            self.fmp_provider.get_company_profile(ticker),
-            self.fmp_provider.get_key_metrics_ttm(ticker),
-            self.fmp_provider.get_ratios_ttm(ticker),
-            self.fmp_provider.get_financial_growth(ticker),
-            self.finnhub_provider.get_company_profile(ticker),
-            self.alpha_vantage_provider.get_global_quote(ticker),
-            self.sec_provider.get_company(ticker),
-            self.fred_provider.get_macro_snapshot(),
+            fmp.get_company_profile(ticker),
+            fmp.get_key_metrics_ttm(ticker),
+            fmp.get_ratios_ttm(ticker),
+            fmp.get_financial_growth(ticker),
+            finnhub.get_company_profile(ticker),
+            alpha_vantage.get_global_quote(ticker),
+            sec.get_company(ticker),
+            fred.get_macro_snapshot(),
             return_exceptions=True,
         )
 
@@ -42,6 +51,9 @@ class ProviderManager:
             "sec_company": self._clean_result(results[6]),
             "macro_snapshot": self._clean_result(results[7]),
         }
+
+    def provider_names(self):
+        return self.registry.names()
 
     def _clean_result(self, result):
         if isinstance(result, Exception):
